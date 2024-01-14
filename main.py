@@ -26,18 +26,17 @@ now_date = datetime.strftime(now,'%Y-%m-%d')
 logger.add(f"./logs/{now_date}_{now.hour}.log", format="{time:YYYY-MM-DD at HH:mm:ss} | {level} | {message}") 
 
 if __name__ == '__main__':
-    # total_keyword = f'{sub_keyword} + {main_keyword}'
-    total_keyword = urllib.parse.quote(string=main_keyword)
-    main_keyword = urllib.parse.quote(string=main_keyword)
+    total_keyword = f'{sub_keyword} +{main_keyword}'
+    tk = urllib.parse.quote(string=total_keyword)
     now = datetime.now()
-    start_date = datetime.strftime(now-timedelta(1),'%Y-%m-%d')
+    start_date = datetime.strftime(now,'%Y-%m-%d')
     end_date = datetime.strftime(now+timedelta(1),'%Y-%m-%d')
 
-    # 
-    nn = NaverNews(total_keyword, main_keyword, start_date, end_date, logger)
+    # 네이버 기사 수집 시작
+    nn = NaverNews(tk, start_date, end_date, logger)
     table = nn.NaverNews_Crawl()
 
-    # 
+    # html 콘텐츠 만들기
     content = GetContent(logger)
     content.get_Summary_Content(now, table)
 
@@ -60,7 +59,7 @@ if __name__ == '__main__':
     template_params = {'NAME': 'Anthonynoh'}
     
 
-    str_subject = '' # 제목
+    str_subject = '자산운용' # 제목
     ehc = EmailHTMLContent(str_subject, template)
 
 

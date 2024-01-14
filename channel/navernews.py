@@ -9,8 +9,8 @@ import urllib3
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning) 
 
 class NaverNews():
-    def __init__(self, total_keyword, main_keyword, start_date, end_date, logger) -> None:
-        self.origin_url       = f'https://search.naver.com/search.naver?sm=tab_hty.top&where=news&query={total_keyword}&oquery={main_keyword}&de={end_date}&ds={start_date}&office_category=0&office_section_code=0&office_type=0&pd=4&photo=0&service_area=0&sort=1&start=<%page_num%>'
+    def __init__(self, tk, start_date, end_date, logger) -> None:
+        self.origin_url       = f'https://search.naver.com/search.naver?sm=tab_hty.top&where=news&query={tk}&de={end_date}&ds={start_date}&office_category=0&office_section_code=0&office_type=0&pd=4&photo=0&service_area=0&sort=1&start=<%page_num%>'
         # self.crawl_date       = datetime.strptime(crawl_start_date, "%Y-%m-%d %H:%M:%S").date().strftime("%Y-%m-%d").replace("-", "")
         self.crawl_start_date = datetime.strptime(start_date,'%Y-%m-%d')
         self.crawl_end_date   = datetime.strptime(end_date,'%Y-%m-%d')
@@ -28,6 +28,10 @@ class NaverNews():
     def NaverNews_Crawl(self):
         """ crawl start date, crawl end date 사이에 있는 뉴스 링크 수집 """
         try:
+            now = datetime.now()
+            now_hour = now.hour
+            now_date = datetime.strftime(now,'%Y-%m-%d')                
+            self.logger.info(f'{now_date}  >>  네이버기사 수집 시작')
             next_page_flag = True
             main_page_no = 1
             article_list = []
@@ -89,16 +93,21 @@ class NaverNews():
                         # 하단 페이지 번호들 중 마지막 페이지의 태그가 strong일 경우 next_page_flag = False
                         if next_page_flag:
                             pages = soup.find("div",{"class":"api_sc_page_wrap"}).find('a', {'class':'btn_next'}).get('aria-disabled')
-                            next_page_flag = True if pages == 'false' else False
+                            next_page_flag = False if pages == 'false' else True
+                    elif '검색결과가 없습니다' in soup.text:
+                        article_list.append('검색결과가 없습니다')
+                        result = pd.DataFrame(data = article_list, columns=['기사내용'])
+                        self.logger.info('검색결과 없습니다.')
+                        next_page_flag = False
+                        break
 
                 except Exception as e:
                     raise Exception('페이지처리 중 에러')
+            if '검색결과가 없습니다' not in soup.text:
+                result = pd.DataFrame(data = article_list, columns=['날짜', '기사제목', '작성자', 'Url'])
+                result.to_excel(f'data/{now_date}_{now_hour}.xlsx', index=False, columns=['날짜', '기사제목', '작성자', 'Url'])
             
-            result = pd.DataFrame(data = article_list, columns=['날짜', '기사제목', '작성자', 'Url'])
-            now = datetime.now()
-            now_hour = now.hour
-            now = datetime.strftime(now,'%Y-%m-%d')
-            result.to_excel(f'data/{now}_{now_hour}.xlsx', index=False, columns=['날짜', '기사제목', '작성자', 'Url'])
+            self.logger.info(f'{now_date}  >>  네이버기사 수집 종료')
    
         except Exception as e:
             self.logger.error('기사 수집 중 에러')
